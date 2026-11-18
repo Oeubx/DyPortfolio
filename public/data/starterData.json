@@ -1,0 +1,128 @@
+{
+  "profile": {
+    "name": "Prince Amorsolo C. Remo",
+    "headline": "Fullstack Software Engineer & System Architect",
+    "summary": "Fullstack developer passionate about building dynamic web platforms, clean single-page resumes, and scalable systems."
+  },
+  "experiences": [
+    {
+      "id": "exp-1",
+      "title": "Lead Software Engineer",
+      "company": "Tech Innovations Studio",
+      "location": "Remote",
+      "startDate": "2023",
+      "endDate": "Present",
+      "isCurrent": true,
+      "bullets": [
+        "Architected scalable microservices and fullstack web applications using React, TypeScript, and Supabase.",
+        "Engineered real-time data pipelines and CI/CD automated deployment workflows on GitHub Actions.",
+        "Optimized frontend bundle sizes and achieved sub-second initial load times across all devices."
+      ],
+      "tags": ["developer", "frontend", "backend", "fullstack", "architecture"],
+      "isActive": true
+    },
+    {
+      "id": "exp-2",
+      "title": "Fullstack Developer",
+      "company": "Apex Digital Labs",
+      "location": "Metro Manila, PH",
+      "startDate": "2021",
+      "endDate": "2023",
+      "isCurrent": false,
+      "bullets": [
+        "Developed resilient REST APIs and PostgreSQL database schemas with Row Level Security.",
+        "Collaborated with cross-functional teams to deliver accessible, responsive UI/UX experiences in React and Tailwind CSS."
+      ],
+      "tags": ["developer", "frontend", "backend", "database"],
+      "isActive": true
+    }
+  ],
+  "projects": [
+    {
+      "id": "proj-1",
+      "title": "DyPortfolio",
+      "subtitle": "Dynamic Portfolio & Single-Page ATS Resume Builder",
+      "techStack": ["React", "TypeScript", "Tailwind CSS", "Supabase", "GitHub Pages"],
+      "bullets": [
+        "Instant role-based resume generation with dynamic checklist customization.",
+        "Audited download telemetry and dynamic cloud certificate management without repository commits."
+      ],
+      "githubUrl": "https://github.com/Biboy/DyPortfolio",
+      "liveUrl": "https://biboy.github.io/DyPortfolio",
+      "tags": ["web", "developer", "fullstack"],
+      "isActive": true
+    },
+    {
+      "id": "proj-2",
+      "title": "Cloud Sentinel",
+      "subtitle": "Real-time Telemetry & Inactivity Escalation Service",
+      "techStack": ["TypeScript", "Node.js", "Redis Pub/Sub", "PostgreSQL"],
+      "bullets": [
+        "Real-time event broadcasting and system anomaly alerts.",
+        "Automated health checks and high-availability database pooling."
+      ],
+      "githubUrl": "https://github.com",
+      "liveUrl": "https://github.com",
+      "tags": ["systems", "backend", "database"],
+      "isActive": true
+    }
+  ],
+  "skills": [
+    { "category": "Languages", "items": ["TypeScript", "JavaScript", "Python", "SQL", "HTML/CSS"], "tags": ["developer", "frontend", "backend"] },
+    { "category": "Frontend", "items": ["React", "Next.js", "Tailwind CSS", "Vite"], "tags": ["developer", "frontend"] },
+    { "category": "Backend & DB", "items": ["Node.js", "PostgreSQL", "Supabase", "Redis", "REST APIs"], "tags": ["developer", "backend", "database", "systems"] },
+    { "category": "DevOps & Tools", "items": ["Git", "GitHub Actions", "Docker", "CI/CD", "Linux"], "tags": ["systems", "devops"] }
+  ],
+  "certificates": [
+    {
+      "id": "cert-1",
+      "title": "AWS Certified Cloud Practitioner",
+      "issuer": "Amazon Web Services",
+      "issueDate": "2024-05",
+      "credentialUrl": "https://aws.amazon.com",
+      "fileUrl": "",
+      "tags": ["cloud", "systems"],
+      "isVisible": true
+    },
+    {
+      "id": "cert-2",
+      "title": "Meta Frontend Professional Certificate",
+      "issuer": "Meta",
+      "issueDate": "2023-11",
+      "credentialUrl": "https://coursera.org",
+      "fileUrl": "",
+      "tags": ["frontend", "developer"],
+      "isVisible": true
+    }
+  ],
+  "personalDetails": [
+    {
+      "id": "detail-1",
+      "category": "language",
+      "label": "English",
+      "proficiency": "Fluent / Professional",
+      "isVisible": true
+    },
+    {
+      "id": "detail-2",
+      "category": "language",
+      "label": "Tagalog / Filipino",
+      "proficiency": "Native",
+      "isVisible": true
+    },
+    {
+      "id": "detail-3",
+      "category": "hobby",
+      "label": "Sound & Audio Engineering",
+      "proficiency": "Audio mixing & synthesizer design",
+      "isVisible": true
+    },
+    {
+      "id": "detail-4",
+      "category": "hobby",
+      "label": "Competitive Chess",
+      "proficiency": "Rapid / Blitz",
+      "isVisible": true
+    }
+  ]
+}
