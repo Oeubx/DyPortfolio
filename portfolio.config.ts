@@ -36,8 +36,8 @@ export const portfolioConfig: PortfolioConfig = {
     ],
     bio: "Passionate developer focused on building scalable, dynamic web systems, intuitive interfaces, and high-reliability software architectures.",
     location: "Philippines",
-    emailPersonal: "oeubxwaa@gmail.com",
-    emailProfessional: "oeubxwaa@gmail.com",
+    emailPersonal: "personal@example.com",
+    emailProfessional: "professional@example.com",
     socials: {
       linkedin: "https://linkedin.com",
       github: "https://github.com",
