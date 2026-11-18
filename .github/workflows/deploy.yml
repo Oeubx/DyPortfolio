@@ -1,0 +1,69 @@
+name: Deploy to GitHub Pages (CD)
+
+on:
+  push:
+    branches: [ main, production ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  security-gate:
+    name: Verify Owner Authorization
+    runs-on: ubuntu-latest
+    steps:
+      - name: Authorization Check
+        run: |
+          echo "Actor: ${{ github.actor }}"
+          echo "Owner: ${{ github.repository_owner }}"
+          if [ "${{ github.actor }}" != "${{ github.repository_owner }}" ] && [ "${{ github.actor }}" != "github-actions[bot]" ]; then
+            echo "::error::Unauthorized actor '${{ github.actor }}' attempted deployment."
+            exit 1
+          fi
+
+  build-and-deploy:
+    name: Build & Publish Site
+    needs: security-gate
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci || npm install
+
+      - name: Build Production Bundle
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
