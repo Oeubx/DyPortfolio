@@ -8,12 +8,15 @@ import { ProjectsPage } from './pages/ProjectsPage';
 import { ExperiencesPage } from './pages/ExperiencesPage';
 import { CertificatesPage } from './pages/CertificatesPage';
 import { AboutPage } from './pages/AboutPage';
+import { DynamicResumePage } from './pages/DynamicResumePage';
 import { dataService } from './lib/supabaseClient';
-import { CertificateItem, ExperienceItem, PersonalDetailItem, ProjectItem } from './types';
+import starterData from '../public/data/starterData.json';
+import { CertificateItem, ExperienceItem, PersonalDetailItem, ProjectItem, SkillCategory } from './types';
 
 export default function App() {
   const [experiences, setExperiences] = useState<ExperienceItem[]>([]);
   const [projects, setProjects] = useState<ProjectItem[]>([]);
+  const [skills, setSkills] = useState<SkillCategory[]>(starterData.skills);
   const [certificates, setCertificates] = useState<CertificateItem[]>([]);
   const [personalDetails, setPersonalDetails] = useState<PersonalDetailItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -32,6 +35,7 @@ export default function App() {
         setProjects(resumeData.projects);
         setCertificates(certs);
         setPersonalDetails(details);
+        setSkills(starterData.skills);
       } catch (err) {
         console.error('Failed to load portfolio data:', err);
       } finally {
@@ -51,6 +55,15 @@ export default function App() {
     }
   };
 
+  const handleDownloadTelemetry = async (presetName: string, selectedCount: number) => {
+    // Dispatches initial download timestamp to Supabase/offline logs (Module 4)
+    await dataService.logDownload({
+      presetName,
+      consentLoggedIp: false,
+    });
+    console.info(`[Download Event] Triggered resume download with preset '${presetName}' (${selectedCount} items)`);
+  };
+
   return (
     <ThemeProvider>
       <AuthProvider>
@@ -60,7 +73,7 @@ export default function App() {
 
             {isLoading ? (
               <div className="max-w-5xl mx-auto py-32 px-6 text-center text-sm text-zinc-500">
-                Loading portfolio components...
+                Loading dynamic portfolio components...
               </div>
             ) : (
               <main>
@@ -69,6 +82,14 @@ export default function App() {
                 <ExperiencesPage experiences={experiences} />
                 <CertificatesPage certificates={certificates} />
                 <AboutPage personalDetails={personalDetails} />
+                <DynamicResumePage
+                  experiences={experiences}
+                  projects={projects}
+                  skills={skills}
+                  certificates={certificates}
+                  personalDetails={personalDetails}
+                  onDownloadTriggered={handleDownloadTelemetry}
+                />
               </main>
             )}
           </div>
