@@ -16,7 +16,30 @@ export const supabase: SupabaseClient | null = isConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
-// Offline-resilient data service
+// In-memory local state cache for offline template mode
+let localCertificates: CertificateItem[] = [...starterData.certificates];
+let localPersonalDetails: PersonalDetailItem[] = [...(starterData.personalDetails as PersonalDetailItem[])];
+const localDownloadLogs: DownloadLogEntry[] = [
+  {
+    id: 'sample-log-1',
+    presetName: 'Software Developer',
+    userName: 'Alex Rivera (Demo Lead)',
+    userEmail: 'alex.recruiter@example.com',
+    downloadReason: 'Hiring / Fullstack Role',
+    consentLoggedIp: true,
+    downloadedAt: new Date(Date.now() - 3600000 * 4).toISOString(),
+  },
+  {
+    id: 'sample-log-2',
+    presetName: 'Systems & Architecture',
+    userName: 'Jordan Lee (Tech Lead)',
+    userEmail: 'jordan@devopscloud.io',
+    downloadReason: 'Freelance Project',
+    consentLoggedIp: false,
+    downloadedAt: new Date(Date.now() - 3600000 * 24).toISOString(),
+  },
+];
+
 export const dataService = {
   async getResumeItems(): Promise<{ experiences: ExperienceItem[]; projects: ProjectItem[] }> {
     if (!supabase) {
@@ -78,18 +101,17 @@ export const dataService = {
 
   async getCertificates(): Promise<CertificateItem[]> {
     if (!supabase) {
-      return starterData.certificates;
+      return localCertificates;
     }
 
     try {
       const { data, error } = await supabase
         .from('certificates')
         .select('*')
-        .eq('is_visible', true)
         .order('display_order', { ascending: true });
 
       if (error || !data || data.length === 0) {
-        return starterData.certificates;
+        return localCertificates;
       }
 
       return data.map((item) => ({
@@ -103,24 +125,115 @@ export const dataService = {
         isVisible: item.is_visible,
       }));
     } catch {
-      return starterData.certificates;
+      return localCertificates;
     }
+  },
+
+  async addCertificate(cert: Omit<CertificateItem, 'id'>, file?: File): Promise<CertificateItem> {
+    let fileUrl = cert.fileUrl || '';
+
+    if (supabase && file) {
+      try {
+        const fileExt = file.name.split('.').pop();
+        const filePath = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('certificates')
+          .upload(filePath, file);
+
+        if (!uploadError) {
+          const { data: publicData } = supabase.storage
+            .from('certificates')
+            .getPublicUrl(filePath);
+          fileUrl = publicData.publicUrl;
+        }
+      } catch (err) {
+        console.warn('Storage upload failed, proceeding with url:', err);
+      }
+    }
+
+    if (!supabase) {
+      const newCert: CertificateItem = {
+        ...cert,
+        id: `cert-${Date.now()}`,
+        fileUrl,
+      };
+      localCertificates = [newCert, ...localCertificates];
+      return newCert;
+    }
+
+    const { data, error } = await supabase
+      .from('certificates')
+      .insert({
+        title: cert.title,
+        issuer: cert.issuer,
+        issue_date: cert.issueDate,
+        credential_url: cert.credentialUrl || null,
+        file_url: fileUrl || null,
+        tags: cert.tags,
+        is_visible: cert.isVisible,
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return {
+      id: data.id,
+      title: data.title,
+      issuer: data.issuer,
+      issueDate: data.issue_date,
+      credentialUrl: data.credential_url,
+      fileUrl: data.file_url,
+      tags: data.tags || [],
+      isVisible: data.is_visible,
+    };
+  },
+
+  async toggleCertificateVisibility(id: string, isVisible: boolean): Promise<boolean> {
+    if (!supabase) {
+      localCertificates = localCertificates.map((c) =>
+        c.id === id ? { ...c, isVisible } : c
+      );
+      return true;
+    }
+
+    const { error } = await supabase
+      .from('certificates')
+      .update({ is_visible: isVisible })
+      .eq('id', id);
+
+    return !error;
+  },
+
+  async deleteCertificate(id: string): Promise<boolean> {
+    if (!supabase) {
+      localCertificates = localCertificates.filter((c) => c.id !== id);
+      return true;
+    }
+
+    const { error } = await supabase
+      .from('certificates')
+      .delete()
+      .eq('id', id);
+
+    return !error;
   },
 
   async getPersonalDetails(): Promise<PersonalDetailItem[]> {
     if (!supabase) {
-      return starterData.personalDetails as PersonalDetailItem[];
+      return localPersonalDetails;
     }
 
     try {
       const { data, error } = await supabase
         .from('personal_details')
         .select('*')
-        .eq('is_visible', true)
         .order('display_order', { ascending: true });
 
       if (error || !data || data.length === 0) {
-        return starterData.personalDetails as PersonalDetailItem[];
+        return localPersonalDetails;
       }
 
       return data.map((item) => ({
@@ -131,14 +244,85 @@ export const dataService = {
         isVisible: item.is_visible,
       }));
     } catch {
-      return starterData.personalDetails as PersonalDetailItem[];
+      return localPersonalDetails;
     }
   },
 
-  async logDownload(entry: DownloadLogEntry): Promise<string | null> {
+  async addPersonalDetail(detail: Omit<PersonalDetailItem, 'id'>): Promise<PersonalDetailItem> {
     if (!supabase) {
-      console.info('[Offline Mode] Logged download event locally:', entry);
-      return 'offline-log-id';
+      const newDetail: PersonalDetailItem = {
+        ...detail,
+        id: `detail-${Date.now()}`,
+      };
+      localPersonalDetails = [...localPersonalDetails, newDetail];
+      return newDetail;
+    }
+
+    const { data, error } = await supabase
+      .from('personal_details')
+      .insert({
+        category: detail.category,
+        label: detail.label,
+        proficiency: detail.proficiency || null,
+        is_visible: detail.isVisible,
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return {
+      id: data.id,
+      category: data.category,
+      label: data.label,
+      proficiency: data.proficiency,
+      isVisible: data.is_visible,
+    };
+  },
+
+  async togglePersonalDetailVisibility(id: string, isVisible: boolean): Promise<boolean> {
+    if (!supabase) {
+      localPersonalDetails = localPersonalDetails.map((d) =>
+        d.id === id ? { ...d, isVisible } : d
+      );
+      return true;
+    }
+
+    const { error } = await supabase
+      .from('personal_details')
+      .update({ is_visible: isVisible })
+      .eq('id', id);
+
+    return !error;
+  },
+
+  async deletePersonalDetail(id: string): Promise<boolean> {
+    if (!supabase) {
+      localPersonalDetails = localPersonalDetails.filter((d) => d.id !== id);
+      return true;
+    }
+
+    const { error } = await supabase
+      .from('personal_details')
+      .delete()
+      .eq('id', id);
+
+    return !error;
+  },
+
+  async logDownload(entry: DownloadLogEntry): Promise<string | null> {
+    const timestamp = new Date().toISOString();
+
+    if (!supabase) {
+      const newLog: DownloadLogEntry = {
+        ...entry,
+        id: `offline-log-${Date.now()}`,
+        downloadedAt: timestamp,
+      };
+      localDownloadLogs.unshift(newLog);
+      return newLog.id || 'offline-log-id';
     }
 
     try {
@@ -167,8 +351,13 @@ export const dataService = {
   },
 
   async updateDownloadLead(logId: string, lead: { name?: string; contact?: string; reason?: string }): Promise<boolean> {
-    if (!supabase || logId === 'offline-log-id') {
-      console.info('[Offline Mode] Updated download lead locally:', lead);
+    if (!supabase || logId.startsWith('offline-log-')) {
+      const target = localDownloadLogs.find((l) => l.id === logId);
+      if (target) {
+        target.userName = lead.name;
+        target.userEmail = lead.contact;
+        target.downloadReason = lead.reason;
+      }
       return true;
     }
 
@@ -186,5 +375,34 @@ export const dataService = {
     } catch {
       return false;
     }
-  }
+  },
+
+  async getDownloadLogs(): Promise<DownloadLogEntry[]> {
+    if (!supabase) {
+      return [...localDownloadLogs];
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('download_logs')
+        .select('*')
+        .order('downloaded_at', { ascending: false });
+
+      if (error || !data) {
+        return [...localDownloadLogs];
+      }
+
+      return data.map((item) => ({
+        id: item.id,
+        presetName: item.preset_name,
+        userEmail: item.user_email,
+        userName: item.user_name,
+        downloadReason: item.download_reason,
+        consentLoggedIp: item.consent_logged_ip,
+        downloadedAt: item.downloaded_at,
+      }));
+    } catch {
+      return [...localDownloadLogs];
+    }
+  },
 };
