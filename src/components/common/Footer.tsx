@@ -1,12 +1,13 @@
 import React from 'react';
-import { Mail, Linkedin, Twitter, Facebook, Github, Download } from 'lucide-react';
+import { Mail, Linkedin, Twitter, Facebook, Github, Download, Shield } from 'lucide-react';
 import { portfolioConfig } from '../../../portfolio.config';
 
 interface FooterProps {
   onQuickDownload?: () => void;
+  onOpenAdmin?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onQuickDownload }) => {
+export const Footer: React.FC<FooterProps> = ({ onQuickDownload, onOpenAdmin }) => {
   const { personal } = portfolioConfig;
 
   return (
@@ -97,8 +98,19 @@ export const Footer: React.FC<FooterProps> = ({ onQuickDownload }) => {
           )}
         </div>
 
-        {/* Right Column: Quick Download CV Button */}
-        <div>
+        {/* Right Column: Actions (Quick Download & Admin Lock) */}
+        <div className="flex items-center gap-2">
+          {onOpenAdmin && (
+            <button
+              onClick={onOpenAdmin}
+              className="p-2.5 rounded-lg border border-border-light dark:border-border-dark text-zinc-500 hover:text-black dark:hover:text-white hover:bg-surface-light dark:hover:bg-surface-dark transition"
+              title="Open Admin Management Portal"
+              aria-label="Open Admin Management Portal"
+            >
+              <Shield className="w-4 h-4" />
+            </button>
+          )}
+
           <button
             onClick={onQuickDownload}
             className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-black text-white dark:bg-white dark:text-black text-xs font-semibold hover:opacity-90 transition shadow-sm"

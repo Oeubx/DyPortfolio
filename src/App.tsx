@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { Navbar } from './components/common/Navbar';
@@ -10,6 +10,7 @@ import { CertificatesPage } from './pages/CertificatesPage';
 import { AboutPage } from './pages/AboutPage';
 import { DynamicResumePage } from './pages/DynamicResumePage';
 import { PostDownloadModal } from './components/resume/PostDownloadModal';
+import { AdminModal } from './components/admin/AdminModal';
 import { dataService } from './lib/supabaseClient';
 import starterData from '../public/data/starterData.json';
 import { CertificateItem, ExperienceItem, PersonalDetailItem, ProjectItem, SkillCategory } from './types';
@@ -25,34 +26,34 @@ export default function App() {
   const [personalDetails, setPersonalDetails] = useState<PersonalDetailItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Post-download modal state
+  // Modals state
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState<boolean>(false);
   const [activeLogId, setActiveLogId] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadPortfolioData() {
-      setIsLoading(true);
-      try {
-        const [resumeData, certs, details] = await Promise.all([
-          dataService.getResumeItems(),
-          dataService.getCertificates(),
-          dataService.getPersonalDetails(),
-        ]);
+  const loadPortfolioData = useCallback(async () => {
+    try {
+      const [resumeData, certs, details] = await Promise.all([
+        dataService.getResumeItems(),
+        dataService.getCertificates(),
+        dataService.getPersonalDetails(),
+      ]);
 
-        setExperiences(resumeData.experiences);
-        setProjects(resumeData.projects);
-        setCertificates(certs);
-        setPersonalDetails(details);
-        setSkills(starterData.skills);
-      } catch (err) {
-        console.error('Failed to load portfolio data:', err);
-      } finally {
-        setIsLoading(false);
-      }
+      setExperiences(resumeData.experiences);
+      setProjects(resumeData.projects);
+      setCertificates(certs);
+      setPersonalDetails(details);
+      setSkills(starterData.skills);
+    } catch (err) {
+      console.error('Failed to load portfolio data:', err);
+    } finally {
+      setIsLoading(false);
     }
-
-    loadPortfolioData();
   }, []);
+
+  useEffect(() => {
+    loadPortfolioData();
+  }, [loadPortfolioData]);
 
   // Handles download telemetry & opens post-download modal
   const handleDownloadTriggered = async (presetName: string, selectedCount: number) => {
@@ -66,7 +67,6 @@ export default function App() {
     } catch (err) {
       console.warn('Failed to record initial download log:', err);
     } finally {
-      // Trigger post-download modal with slight smooth delay so user sees browser download start
       setTimeout(() => {
         setIsModalOpen(true);
       }, 700);
@@ -76,14 +76,12 @@ export default function App() {
   // Quick download from footer / hero
   const handleQuickDownload = async () => {
     try {
-      // 1. Immediately dispatch telemetry
       const logId = await dataService.logDownload({
         presetName: 'Quick Download',
         consentLoggedIp: false,
       });
       setActiveLogId(logId);
 
-      // 2. Generate and trigger PDF download immediately
       const defaultPayload = {
         experiences,
         projects,
@@ -103,7 +101,6 @@ export default function App() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      // 3. Open post-download modal
       setTimeout(() => {
         setIsModalOpen(true);
       }, 700);
@@ -158,13 +155,25 @@ export default function App() {
             )}
           </div>
 
-          <Footer onQuickDownload={handleQuickDownload} />
+          <Footer
+            onQuickDownload={handleQuickDownload}
+            onOpenAdmin={() => setIsAdminModalOpen(true)}
+          />
 
           {/* Post-Download Feedback Modal */}
           <PostDownloadModal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
             onSubmit={handleModalSubmit}
+          />
+
+          {/* Admin Management Modal */}
+          <AdminModal
+            isOpen={isAdminModalOpen}
+            onClose={() => setIsAdminModalOpen(false)}
+            certificates={certificates}
+            personalDetails={personalDetails}
+            onRefreshData={loadPortfolioData}
           />
         </div>
       </AuthProvider>
