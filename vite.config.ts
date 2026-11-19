@@ -6,6 +6,13 @@ export default defineConfig({
   base: '/',
   build: {
     outDir: 'dist',
-    sourcemap: false
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          pdf: ['@react-pdf/renderer'],
+        }
+      }
+    }
   }
 });
