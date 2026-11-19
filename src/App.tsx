@@ -9,9 +9,13 @@ import { ExperiencesPage } from './pages/ExperiencesPage';
 import { CertificatesPage } from './pages/CertificatesPage';
 import { AboutPage } from './pages/AboutPage';
 import { DynamicResumePage } from './pages/DynamicResumePage';
+import { PostDownloadModal } from './components/resume/PostDownloadModal';
 import { dataService } from './lib/supabaseClient';
 import starterData from '../public/data/starterData.json';
 import { CertificateItem, ExperienceItem, PersonalDetailItem, ProjectItem, SkillCategory } from './types';
+import { pdf } from '@react-pdf/renderer';
+import { ResumePDFDocument } from './components/resume/ResumePDF';
+import { portfolioConfig } from '../portfolio.config';
 
 export default function App() {
   const [experiences, setExperiences] = useState<ExperienceItem[]>([]);
@@ -20,6 +24,10 @@ export default function App() {
   const [certificates, setCertificates] = useState<CertificateItem[]>([]);
   const [personalDetails, setPersonalDetails] = useState<PersonalDetailItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Post-download modal state
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [activeLogId, setActiveLogId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadPortfolioData() {
@@ -46,22 +54,78 @@ export default function App() {
     loadPortfolioData();
   }, []);
 
-  const handleQuickDownload = () => {
-    const resumeSection = document.getElementById('resume');
-    if (resumeSection) {
-      resumeSection.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      window.location.hash = '#resume';
+  // Handles download telemetry & opens post-download modal
+  const handleDownloadTriggered = async (presetName: string, selectedCount: number) => {
+    try {
+      const logId = await dataService.logDownload({
+        presetName,
+        consentLoggedIp: false,
+      });
+      setActiveLogId(logId);
+      console.info(`[Download Event] Registered log '${logId}' for preset '${presetName}' (${selectedCount} items)`);
+    } catch (err) {
+      console.warn('Failed to record initial download log:', err);
+    } finally {
+      // Trigger post-download modal with slight smooth delay so user sees browser download start
+      setTimeout(() => {
+        setIsModalOpen(true);
+      }, 700);
     }
   };
 
-  const handleDownloadTelemetry = async (presetName: string, selectedCount: number) => {
-    // Dispatches initial download timestamp to Supabase/offline logs (Module 4)
-    await dataService.logDownload({
-      presetName,
-      consentLoggedIp: false,
-    });
-    console.info(`[Download Event] Triggered resume download with preset '${presetName}' (${selectedCount} items)`);
+  // Quick download from footer / hero
+  const handleQuickDownload = async () => {
+    try {
+      // 1. Immediately dispatch telemetry
+      const logId = await dataService.logDownload({
+        presetName: 'Quick Download',
+        consentLoggedIp: false,
+      });
+      setActiveLogId(logId);
+
+      // 2. Generate and trigger PDF download immediately
+      const defaultPayload = {
+        experiences,
+        projects,
+        skills,
+        certificates,
+        personalDetails,
+      };
+
+      const doc = <ResumePDFDocument data={defaultPayload} />;
+      const blob = await pdf(doc).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${portfolioConfig.personal.name.replace(/\s+/g, '_')}_Resume.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      // 3. Open post-download modal
+      setTimeout(() => {
+        setIsModalOpen(true);
+      }, 700);
+    } catch (err) {
+      console.error('Failed to trigger quick download:', err);
+    }
+  };
+
+  // Updates download log if user fills out optional form
+  const handleModalSubmit = async (details: {
+    name?: string;
+    contact?: string;
+    reason?: string;
+    consentLoggedIp?: boolean;
+  }) => {
+    if (activeLogId) {
+      await dataService.updateDownloadLead(activeLogId, {
+        name: details.name,
+        contact: details.contact,
+        reason: details.reason,
+      });
+    }
   };
 
   return (
@@ -88,13 +152,20 @@ export default function App() {
                   skills={skills}
                   certificates={certificates}
                   personalDetails={personalDetails}
-                  onDownloadTriggered={handleDownloadTelemetry}
+                  onDownloadTriggered={handleDownloadTriggered}
                 />
               </main>
             )}
           </div>
 
           <Footer onQuickDownload={handleQuickDownload} />
+
+          {/* Post-Download Feedback Modal */}
+          <PostDownloadModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onSubmit={handleModalSubmit}
+          />
         </div>
       </AuthProvider>
     </ThemeProvider>
