@@ -4,38 +4,39 @@ This document details the branch lifecycle, gating rules, and repository configu
 
 ---
 
-## 1. Branch Hierarchy
+## 1. Branch Hierarchy & Version Mapping
 
-DyPortfolio follows a strict 4-branch multi-stage promotion pipeline:
+DyPortfolio separates the open-source **Generalized Template** from **Prince's Personal Production Deployment**:
 
 ```
+[Generalized Template Version]
 feature/<category>/<description>
          │
-         ▼ (Outside contributor PR OR Direct merge by Prince)
-   development  (Active Integration Branch)
+         ▼ (PR with CI checks OR Direct merge by Prince)
+   development  (Open-Source Generalized Template Branch)
          │
-         ▼ (Promotion PR + CI Checks + Prince's Approval)
-     staging    (Pre-production Verification)
+         ▼ (Merged into main when finalized as template reference)
+      main      (Official Open-Source Repository Template)
+
+[Prince's Personal Version]
+personal/<category>/<description>
          │
-         ▼ (Promotion PR + CI Checks + Prince's Approval)
-   production / main (Production Source -> Automated GitHub Pages CD)
+         ▼ (Promotion PR with Prince's authentic data)
+     staging    (Pre-production Verification - Personal Version)
+         │
+         ▼ (Promotion PR + CI Checks + Owner Review)
+   production   (Live Personal Deployment on Vercel)
 ```
 
-1. **Feature Branches (`feat/*`, `fix/*`, `chore/*`)**:
-   - Short-lived branches created off `development`.
-   - Work is submitted to `development` exclusively via Pull Request.
-2. **`development` Branch**:
-   - Central integration area for active feature builds.
-   - Triggers automated CI checks on every PR and push.
-   - **Prince Amorsolo C. Remo** can push or merge directly.
-   - **Outside contributors** must open a PR.
+1. **`development` Branch**:
+   - Houses the complete, open-source **Generalized Version**.
+   - Contains generic configuration (`portfolio.config.ts`), placeholder datasets (`starterData.json`), and fork guides for the public.
+2. **`main` Branch**:
+   - The canonical public GitHub branch where developers land to fork and clone the Generalized Template.
 3. **`staging` Branch**:
-   - Pre-production staging environment.
-   - **Everyone (including Prince)** must undergo a Pull Request with passing CI status checks.
-4. **`production` / `main` Branch**:
-   - Production source of truth.
-   - Pushes/merges trigger the automated GitHub Pages CD workflow (`.github/workflows/deploy.yml`).
-   - **Everyone (including Prince)** must undergo a Pull Request with passing CI status checks and owner authorization.
+   - Reserved strictly for testing **Prince's Personal Version** (populated with authentic career achievements, real credentials, and private Supabase keys).
+4. **`production` Branch**:
+   - The live production source targeting Vercel (`dyportfolio.vercel.app`) for **Prince's Personal Deployment**.
 
 ---
 
